@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D488 Mock OA — Cybersecurity Architecture & Engineering</title>
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --ink: #1A1A1C;
+    --muted: #6B6B70;
+    --subtle: #94928B;
+    --border: #E8E5DE;
+    --border-strong: #D4D0C7;
+    --card: #FFFFFF;
+    --accent: #2B4870;
+    --accent-hover: #1E3658;
+    --correct: #2D6A3C;
+    --correct-bg: #E8F1E9;
+    --incorrect: #A03340;
+    --incorrect-bg: #F5E6E8;
+    --shadow: 0 1px 2px rgba(26,26,28,0.04), 0 2px 8px rgba(26,26,28,0.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-feature-settings: "tnum"; }
+  main { max-width: 820px; margin: 0 auto; padding: 48px 28px 80px; }
+  .exam-header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 32px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 16px; }
+  .progress-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .progress-label .current { color: var(--ink); font-weight: 600; }
+  .progress-bar { flex: 1; height: 3px; background: var(--border); overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 240ms ease; }
+  .timer { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .timer.warning { color: var(--incorrect); }
+  .timer-toggle { font-size: 12px; padding: 4px 10px; border: 1px solid var(--border-strong); background: var(--card); border-radius: 3px; cursor: pointer; color: var(--muted); }
+  .timer-toggle:hover { border-color: var(--ink); color: var(--ink); }
+  .question-card { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 32px 32px 28px; box-shadow: var(--shadow); margin-bottom: 24px; }
+  .q-meta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .q-number { font-size: 13px; color: var(--subtle); font-weight: 500; }
+  .q-domain { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; }
+  .q-text { font-size: 16px; line-height: 1.6; margin: 0 0 24px; color: var(--ink); }
+  .q-prompt { font-weight: 500; margin-top: 14px; }
+  .choices { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .choice label { display: flex; align-items: flex-start; gap: 14px; padding: 12px 16px; border: 1px solid var(--border-strong); border-radius: 4px; cursor: pointer; transition: all 120ms ease; background: var(--card); }
+  .choice label:hover { border-color: var(--accent); background: #F8F9FB; }
+  .choice input[type="radio"] { margin: 4px 0 0; accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+  .choice-letter { font-weight: 600; color: var(--accent); margin-right: 4px; }
+  .choice label:has(input:checked) { border-color: var(--accent); background: #F4F6FA; box-shadow: inset 0 0 0 1px var(--accent); }
+  .choice-content { flex: 1; line-height: 1.5; font-size: 15px; }
+  .exam-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+  .nav-group { display: flex; gap: 12px; }
+  button { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 22px; border-radius: 4px; cursor: pointer; transition: all 120ms ease; border: 1px solid transparent; letter-spacing: 0.01em; }
+  .btn-secondary { background: var(--card); border-color: var(--border-strong); color: var(--ink); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--ink); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-submit { background: var(--ink); color: white; }
+  .btn-submit:hover { background: #000; }
+  .btn-flag { background: var(--card); border-color: var(--border-strong); color: var(--muted); padding: 8px 14px; font-size: 13px; }
+  .btn-flag.flagged { background: #FFF4D6; border-color: #C9A227; color: #8A6C00; }
+  .palette { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .palette-cell { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: 3px; font-size: 11px; cursor: pointer; background: var(--card); color: var(--muted); transition: all 120ms ease; position: relative; }
+  .palette-cell:hover { border-color: var(--accent); }
+  .palette-cell.answered { background: var(--accent); color: white; border-color: var(--accent); }
+  .palette-cell.current { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ink); }
+  .palette-cell.flagged::after { content: ''; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; background: #C9A227; border-radius: 50%; border: 1.5px solid var(--bg); }
+  .results-header { text-align: center; padding: 24px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  .score-display { font-size: 72px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; margin: 12px 0; font-feature-settings: "tnum"; }
+  .score-display .percent { font-size: 32px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .score-label { font-size: 13px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+  .domain-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 28px auto 0; max-width: 520px; text-align: left; font-size: 13px; }
+  .domain-summary .label { color: var(--muted); }
+  .domain-summary .value { text-align: right; color: var(--ink); font-weight: 500; font-feature-settings: "tnum"; }
+  .domain-summary .value.weak { color: var(--incorrect); }
+  .domain-summary .value.strong { color: var(--correct); }
+  h2.section-heading { font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 600; margin: 0 0 20px; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+  .filter-bar button { padding: 6px 12px; font-size: 12px; background: var(--card); border: 1px solid var(--border-strong); color: var(--muted); border-radius: 3px; }
+  .filter-bar button.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .result-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: 3px; padding: 18px 22px; margin-bottom: 12px; }
+  .result-card.correct { border-left-color: var(--correct); }
+  .result-card.incorrect { border-left-color: var(--incorrect); }
+  .result-card.hidden { display: none; }
+  .result-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 10px; }
+  .result-q-num { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .result-badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; padding: 3px 8px; border-radius: 2px; }
+  .result-badge.correct { background: var(--correct-bg); color: var(--correct); }
+  .result-badge.incorrect { background: var(--incorrect-bg); color: var(--incorrect); }
+  .result-q-text { font-size: 14px; line-height: 1.5; color: var(--ink); margin: 0 0 12px; }
+  .result-answers { font-size: 13px; display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
+  .result-answers .label-tag { display: inline-block; min-width: 80px; font-weight: 500; color: var(--muted); }
+  .result-answers .your-pick.wrong { color: var(--incorrect); font-weight: 500; }
+  .result-answers .your-pick.right { color: var(--correct); font-weight: 500; }
+  .result-answers .correct-pick { color: var(--correct); font-weight: 500; }
+  .result-explain { margin-top: 10px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .results-actions { display: flex; gap: 12px; margin: 32px 0 16px; flex-wrap: wrap; }
+  .copy-feedback { color: var(--correct); font-size: 13px; margin-left: 8px; opacity: 0; transition: opacity 200ms; align-self: center; }
+  .copy-feedback.show { opacity: 1; }
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(26,26,28,0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-backdrop.active { display: flex; }
+  .modal { background: var(--card); border-radius: 6px; padding: 28px; max-width: 460px; box-shadow: 0 20px 60px rgba(26,26,28,0.2); }
+  .modal h3 { margin: 0 0 12px; font-size: 18px; }
+  .modal p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .flag-toolbar { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+  @media (max-width: 600px) {
+    main { padding: 32px 16px 60px; }
+    .question-card { padding: 22px 18px; }
+    .q-text { font-size: 15px; }
+    .domain-summary { grid-template-columns: 1fr; }
+    .palette-cell { width: 26px; height: 26px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<main id="exam-screen">
+  <div class="exam-header">
+    <div class="eyebrow">D488 — Cybersecurity Architecture & Engineering</div>
+    <h1>Mock Objective Assessment</h1>
+    <p class="subtitle">60 questions · WGU OA style · all five domains in OA-realistic proportions.</p>
+    <div class="progress-row">
+      <div class="progress-label">Question <span class="current" id="qCurrent">1</span> of <span id="qTotal">60</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label"><span id="answeredCount">0</span> answered</div>
+    </div>
+    <div class="flag-toolbar">
+      <button class="timer-toggle" id="timerToggle">▶ Start Timer</button>
+      <span class="timer" id="timer"></span>
+    </div>
+  </div>
+  <section class="question-card" id="questionCard"></section>
+  <div class="exam-nav">
+    <button class="btn-secondary" id="prevBtn">← Previous</button>
+    <div class="nav-group">
+      <button class="btn-flag" id="flagBtn">⚑ Flag for Review</button>
+      <button class="btn-submit" id="submitBtn">Submit Exam</button>
+      <button class="btn-primary" id="nextBtn">Next →</button>
+    </div>
+  </div>
+  <div class="palette" id="palette"></div>
+</main>
+<main id="results-screen" style="display:none;">
+  <div class="results-header">
+    <div class="eyebrow">Mock OA Complete</div>
+    <div class="score-display"><span id="scoreCorrect">0</span>/<span id="scoreTotal">60</span><span class="percent" id="scorePercent">0%</span></div>
+    <div class="score-label" id="scoreLabel">Results</div>
+    <div class="domain-summary" id="domainSummary"></div>
+  </div>
+  <h2 class="section-heading">Question-by-Question Breakdown</h2>
+  <div class="filter-bar">
+    <button class="active" data-filter="all">All (60)</button>
+    <button data-filter="incorrect">Incorrect Only</button>
+    <button data-filter="correct">Correct Only</button>
+  </div>
+  <div id="breakdown"></div>
+  <div class="results-actions">
+    <button class="btn-primary" id="copyBtn">Copy Results to Share</button>
+    <button class="btn-secondary" id="retakeBtn">Retake Exam</button>
+    <span class="copy-feedback" id="copyFeedback">Copied to clipboard ✓</span>
+  </div>
+</main>
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3>Submit exam?</h3>
+    <p id="modalText">You have unanswered questions. Submitting now will count them as incorrect.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modalCancel">Go back</button>
+      <button class="btn-submit" id="modalConfirm">Submit anyway</button>
+    </div>
+  </div>
+</div>
+<script>
+const questions = [
+  // SECURITY ARCHITECTURE (1-15)
+  { id: 1, domain: "Architecture", text: "A retail company has just launched a customer-facing web application that has been receiving frequent cross-site scripting (XSS) and SQL injection attempts since going live. The security team needs to deploy a solution at the network edge that inspects HTTP/HTTPS traffic and blocks application-layer attacks before they reach the web server.", prompt: "Which solution fulfills these requirements?",
+    options: { A: "Network intrusion detection system (NIDS)", B: "Web application firewall (WAF)", C: "Virtual private network (VPN)", D: "Network access control (NAC)" }, correct: "B",
+    explain: "WAF specifically inspects HTTP/HTTPS at layer 7 and blocks application attacks like SQLi and XSS. NIDS detects but doesn't block app-layer attacks. VPN is for tunneling. NAC controls endpoint admission." },
+  { id: 2, domain: "Architecture", text: "A company is concerned about employees bringing personal laptops into the office and plugging them into wired Ethernet ports throughout the building. The security team needs a solution that will verify endpoint compliance and prevent unauthorized devices from gaining network access.", prompt: "Which solution should be implemented?",
+    options: { A: "Demilitarized zone (DMZ)", B: "Network access control (NAC)", C: "Software firewall on each switch", D: "Intrusion prevention system (IPS)" }, correct: "B",
+    explain: "NAC enforces device-level admission control with posture checks before granting network access. DMZ is a network segment for public services. Software firewalls don't enforce admission. IPS blocks known attack patterns, not unauthorized devices." },
+  { id: 3, domain: "Architecture", text: "A small business has a limited budget and wants a single appliance that combines firewall, antivirus, intrusion detection, content filtering, and anti-spam capabilities at the network perimeter.", prompt: "Which solution meets this requirement?",
+    options: { A: "Stateful packet inspection firewall only", B: "Web application firewall (WAF)", C: "Unified threat management (UTM) appliance", D: "Network access control (NAC)" }, correct: "C",
+    explain: "UTM bundles multiple security functions into one box — exactly the small-business consolidation play. Stateful firewall is one function only. WAF is application-layer specific. NAC handles admission control." },
+  { id: 4, domain: "Architecture", text: "A company hosts a public-facing web server and an internal database server. The security team needs to ensure that the web server is reachable from the internet but isolated from the internal corporate network so that a compromise of the web server does not directly expose internal systems.", prompt: "Which network design BEST meets this requirement?",
+    options: { A: "Demilitarized zone (DMZ)", B: "Virtual private network (VPN)", C: "Single flat subnet", D: "Air-gapped network" }, correct: "A",
+    explain: "DMZ is the dedicated perimeter segment for public-facing servers, isolated from the internal LAN by firewalls. VPN is for secure remote access. A flat subnet is what you're trying to avoid. Air-gapped means no connectivity at all — too restrictive for a public web server." },
+  { id: 5, domain: "Architecture", text: "A manufacturing company operates a production line with programmable logic controllers (PLCs) and human-machine interfaces (HMIs). The security team needs to isolate these operational technology systems from the corporate IT network to limit the impact of an IT-side compromise.", prompt: "Which approach BEST meets this requirement?",
+    options: { A: "Network segmentation between IT and OT environments", B: "Deploying antivirus on each PLC", C: "Implementing single sign-on", D: "Replacing the PLCs with newer models" }, correct: "A",
+    explain: "Segmentation between IT and OT (Purdue model) is the industry-standard control to contain blast radius. Most PLCs can't even run antivirus. SSO is identity, not isolation. Replacement doesn't solve the architectural issue." },
+  { id: 6, domain: "Architecture", text: "A company is redesigning its network to assume that no user or device should be inherently trusted, regardless of whether the request originates from inside or outside the corporate network. Every access request must be continuously authenticated and authorized.", prompt: "Which architecture model BEST meets this requirement?",
+    options: { A: "Traditional perimeter-based security", B: "Zero trust architecture", C: "Air-gapped network", D: "Defense in depth alone" }, correct: "B",
+    explain: "Zero Trust = never trust, always verify; per-request authentication and authorization regardless of network location. Perimeter security trusts the inside. Air-gap doesn't fit a connected enterprise. Defense in depth is layered controls but doesn't itself enforce continuous verification." },
+  { id: 7, domain: "Architecture", text: "A globally distributed company has remote employees in 20+ countries. The security team wants to provide secure access to cloud applications and the corporate network while applying consistent security policy at edge locations close to each user.", prompt: "Which solution BEST meets this requirement?",
+    options: { A: "Site-to-site IPsec VPN mesh", B: "Secure access service edge (SASE)", C: "On-premises NGFW cluster", D: "Dial-up RAS" }, correct: "B",
+    explain: "SASE converges networking (SD-WAN) and security (SWG, CASB, ZTNA, FWaaS) at cloud-delivered edge PoPs — purpose-built for global distributed workforces. VPN mesh doesn't scale globally. On-prem NGFW backhauls traffic and hurts latency. RAS is legacy." },
+  { id: 8, domain: "Architecture", text: "A startup needs to deploy a customer-facing web application but wants the cloud provider to manage the operating system, runtime, and middleware, leaving only the application code and data for the startup to manage.", prompt: "Which cloud service model meets this need?",
+    options: { A: "Infrastructure as a service (IaaS)", B: "Platform as a service (PaaS)", C: "Software as a service (SaaS)", D: "Network as a service (NaaS)" }, correct: "B",
+    explain: "PaaS gives you the platform (OS, runtime, middleware) — you bring the code and data. IaaS leaves OS to you. SaaS is a fully managed end-user application. NaaS is networking-as-service." },
+  { id: 9, domain: "Architecture", text: "A company is migrating to a hybrid cloud environment and wants a tool that provides visibility, threat protection, and data loss prevention specifically for sanctioned and unsanctioned SaaS application usage by employees.", prompt: "Which tool meets this requirement?",
+    options: { A: "Cloud security posture management (CSPM)", B: "Cloud workload protection platform (CWPP)", C: "Cloud access security broker (CASB)", D: "Web application firewall (WAF)" }, correct: "C",
+    explain: "CASB's four pillars (visibility, compliance, threat protection, data security) target SaaS usage and shadow IT. CSPM is for IaaS/PaaS misconfigurations. CWPP protects workloads. WAF protects web apps." },
+  { id: 10, domain: "Architecture", text: "A DevOps team wants continuous detection of misconfigurations in its AWS, Azure, and GCP environments, such as overly permissive IAM policies, unencrypted storage volumes, and publicly exposed cloud resources.", prompt: "Which solution meets this requirement?",
+    options: { A: "Cloud access security broker (CASB)", B: "Cloud security posture management (CSPM)", C: "Endpoint detection and response (EDR)", D: "Security information and event management (SIEM)" }, correct: "B",
+    explain: "CSPM continuously audits cloud configurations against benchmarks (CIS, NIST). CASB is about SaaS usage. EDR is for endpoints. SIEM aggregates logs but doesn't proactively find cloud misconfigurations." },
+  { id: 11, domain: "Architecture", text: "A company is hardening a hypervisor that hosts multiple production virtual machines. The primary concern is preventing a compromised guest VM from escaping its boundaries and accessing other VMs or the host.", prompt: "Which approach BEST mitigates this risk?",
+    options: { A: "Patching the hypervisor and disabling unused features like shared clipboard and folder sharing", B: "Increasing each VM's RAM allocation", C: "Disabling all VM snapshots", D: "Encrypting VM disks at rest only" }, correct: "A",
+    explain: "Hypervisor patching plus attack-surface reduction (disable unused features) directly mitigates VM escape vulnerabilities. RAM and snapshots are unrelated. Disk encryption protects data at rest but doesn't stop escape." },
+  { id: 12, domain: "Architecture", text: "A web application is experiencing high traffic loads, leading to slow response times and occasional outages. The architecture team needs a solution that distributes incoming requests across multiple backend servers to improve availability and performance.", prompt: "Which solution should be implemented?",
+    options: { A: "Reverse proxy with caching only", B: "Load balancer", C: "Content delivery network (CDN)", D: "Web application firewall (WAF)" }, correct: "B",
+    explain: "Load balancer distributes traffic across multiple backend servers — that's the textbook answer for this scenario. CDN caches at the edge (good for static content). Reverse proxy can do some load balancing but the dedicated answer here is load balancer. WAF protects, doesn't distribute." },
+  { id: 13, domain: "Architecture", text: "A media company wants to reduce latency for international users accessing its video content and also absorb large traffic spikes during product launches.", prompt: "Which solution BEST meets these requirements?",
+    options: { A: "Content delivery network (CDN)", B: "Network access control (NAC)", C: "Data loss prevention (DLP)", D: "Stateful firewall" }, correct: "A",
+    explain: "CDN caches content at geographically distributed edge nodes — reduces latency and absorbs traffic spikes. The other options serve completely different functions." },
+  { id: 14, domain: "Architecture", text: "A finance company needs every remote employee to access internal systems through an encrypted tunnel that authenticates the user and protects all traffic between the user's laptop and the corporate network.", prompt: "Which solution fulfills this requirement?",
+    options: { A: "Web application firewall (WAF)", B: "Virtual private network (VPN)", C: "Network access control (NAC)", D: "Intrusion detection system (IDS)" }, correct: "B",
+    explain: "VPN is the classic remote-access solution: encrypted tunnel with authentication. The other tools serve different purposes." },
+  { id: 15, domain: "Architecture", text: "A government agency needs to protect classified systems from internet-based threats by ensuring there is no physical or logical network connectivity between the classified network and any external network.", prompt: "Which network design fulfills this requirement?",
+    options: { A: "Demilitarized zone (DMZ)", B: "Air-gapped network", C: "VPN concentrator", D: "Stateful firewall" }, correct: "B",
+    explain: "Air-gapped = no physical or logical connection to any external network. Used for the highest-sensitivity systems. DMZ still connects to the internet. VPN/firewall imply some connectivity." },
+  // SECURITY OPERATIONS (16-27)
+  { id: 16, domain: "Operations", text: "A SOC team needs a centralized platform that aggregates and correlates logs from firewalls, servers, applications, and endpoints to detect security incidents through correlation rules and alert dashboards.", prompt: "Which solution fulfills these requirements?",
+    options: { A: "Security information and event management (SIEM)", B: "Data loss prevention (DLP)", C: "Web application firewall (WAF)", D: "Endpoint detection and response (EDR)" }, correct: "A",
+    explain: "SIEM is the canonical log-aggregation-and-correlation tool. DLP focuses on data exfil. WAF is app-layer protection. EDR is endpoint-specific." },
+  { id: 17, domain: "Operations", text: "A SOC manager wants to automate routine incident response tasks such as enriching alerts with threat intelligence, isolating endpoints, opening tickets, and notifying analysts, while keeping the existing SIEM in place.", prompt: "Which solution should be implemented?",
+    options: { A: "Replace the SIEM with a new one", B: "Security orchestration, automation, and response (SOAR)", C: "Deploy a honeypot", D: "Increase pen testing frequency" }, correct: "B",
+    explain: "SOAR integrates with SIEM and automates playbook-driven response. Replacing the SIEM is unnecessary. Honeypots and pen tests don't automate response." },
+  { id: 18, domain: "Operations", text: "A security team needs to deploy a sensor at the network edge that will alert administrators when traffic matches known attack signatures, but will not actively block any traffic.", prompt: "Which solution fulfills this requirement?",
+    options: { A: "Intrusion prevention system (IPS)", B: "Intrusion detection system (IDS)", C: "Web application firewall (WAF)", D: "Data loss prevention (DLP)" }, correct: "B",
+    explain: "IDS = detect and alert only. IPS = detect AND block. The 'not actively block' phrase is the IDS giveaway." },
+  { id: 19, domain: "Operations", text: "A security team needs a detection technique that can identify previously unknown attacks by establishing a baseline of normal network behavior and alerting on significant deviations.", prompt: "Which detection technique meets this requirement?",
+    options: { A: "Signature-based detection", B: "Anomaly-based detection", C: "Allowlisting", D: "Deep packet inspection" }, correct: "B",
+    explain: "Anomaly-based (a.k.a. behavior-based) detection establishes a baseline and alerts on deviations — catches zero-days. Signature-based requires known patterns. Allowlisting is enforcement, not detection." },
+  { id: 20, domain: "Operations", text: "A company has experienced a string of advanced malware infections that traditional antivirus failed to catch. The security team needs a solution that provides continuous behavioral monitoring on endpoints, threat hunting capabilities, and the ability to isolate compromised hosts.", prompt: "Which solution fulfills these requirements?",
+    options: { A: "Antivirus only", B: "Endpoint detection and response (EDR)", C: "Hardware security module (HSM)", D: "Two-factor authentication" }, correct: "B",
+    explain: "EDR = continuous endpoint telemetry, behavioral detection, threat hunting, response actions (isolation). AV alone fails on novel threats. HSM is for key storage. 2FA is access control." },
+  { id: 21, domain: "Operations", text: "A company has noticed sensitive customer data being emailed outside the organization. The security team needs a solution that inspects outbound communications and blocks or quarantines messages containing patterns that match credit card numbers, Social Security numbers, or other sensitive data.", prompt: "Which solution should be implemented?",
+    options: { A: "Security information and event management (SIEM)", B: "Data loss prevention (DLP)", C: "Intrusion detection system (IDS)", D: "Web application firewall (WAF)" }, correct: "B",
+    explain: "DLP scans content for sensitive data patterns and blocks/quarantines exfiltration attempts. SIEM correlates events. IDS watches for attacks. WAF protects web apps." },
+  { id: 22, domain: "Operations", text: "A bank wants to detect insider threats and compromised accounts by analyzing user behavior patterns and flagging deviations such as logins at unusual times, access to resources never previously touched, or large data transfers.", prompt: "Which solution BEST meets this need?",
+    options: { A: "User and entity behavior analytics (UEBA)", B: "Antivirus alerts", C: "Web application firewall (WAF)", D: "Network access control (NAC)" }, correct: "A",
+    explain: "UEBA builds behavioral baselines per user/entity and detects deviations — purpose-built for insider threat and account compromise. The other tools target different threats." },
+  { id: 23, domain: "Operations", text: "A CISO wants threat intelligence that supports long-term strategic decisions about which threat actor groups are most likely to target the industry, considering geopolitical context and adversary motivations.", prompt: "Which type of threat intelligence is MOST appropriate?",
+    options: { A: "Tactical", B: "Operational", C: "Technical", D: "Strategic" }, correct: "D",
+    explain: "Strategic TI = high-level, long-term, decision-maker-oriented, includes geopolitical and motivation context. Tactical = TTPs. Operational = specific campaigns. Technical = IOCs." },
+  { id: 24, domain: "Operations", text: "A security team has just contained a ransomware incident, removed the malicious software, and restored systems from clean backups. The team is now documenting root cause, updating procedures, and conducting a meeting to capture lessons learned.", prompt: "According to NIST SP 800-61, which incident response phase BEST describes this activity?",
+    options: { A: "Preparation", B: "Detection and analysis", C: "Containment, eradication, and recovery", D: "Post-incident activity" }, correct: "D",
+    explain: "Post-incident activity = lessons learned, root cause documentation, procedure updates. The four phases per NIST SP 800-61: Preparation → Detection & Analysis → Containment/Eradication/Recovery → Post-Incident Activity." },
+  { id: 25, domain: "Operations", text: "A company wants to validate its disaster recovery plan by having key team members gather in a conference room and walk through their roles and responses to a hypothetical scenario, without actually activating any systems or relocating personnel.", prompt: "Which test type meets this requirement?",
+    options: { A: "Full-interruption test", B: "Tabletop exercise", C: "Parallel test", D: "Simulation test" }, correct: "B",
+    explain: "Tabletop = discussion-based walkthrough of roles and responses, no systems activated. Full-interruption actually shuts down production. Parallel runs DR alongside production. Simulation involves more active scenario execution." },
+  { id: 26, domain: "Operations", text: "A security team wants to deceive and study attackers by deploying intentionally vulnerable systems that appear to be valuable targets but contain no production data. Activity on these systems is logged for threat intelligence purposes.", prompt: "Which solution meets this need?",
+    options: { A: "Honeypot", B: "Web application firewall", C: "Intrusion prevention system", D: "Bastion host" }, correct: "A",
+    explain: "Honeypot = decoy system designed to attract and study attackers. Bastion host is a hardened jump server. WAF and IPS defend, they don't deceive." },
+  { id: 27, domain: "Operations", text: "A SOC analyst is building a detection rule to identify credential stuffing attacks against a customer-facing login page.", prompt: "Which log source provides the MOST directly relevant data for this detection?",
+    options: { A: "DHCP lease logs", B: "Web application authentication logs", C: "Firewall deny logs", D: "DNS query logs" }, correct: "B",
+    explain: "Credential stuffing = repeated authentication attempts. Web app auth logs show failed/successful logins, source IPs, timing patterns. DHCP and DNS don't capture auth events. Firewall logs show traffic, not app-layer auth attempts." },
+  // SECURITY ENGINEERING & CRYPTOGRAPHY (28-39)
+  { id: 28, domain: "Cryptography", text: "A company needs to encrypt large volumes of customer data stored in a database using a fast algorithm that uses the same key for encryption and decryption.", prompt: "Which algorithm BEST meets this requirement?",
+    options: { A: "RSA", B: "AES", C: "SHA-256", D: "Diffie-Hellman" }, correct: "B",
+    explain: "Same key both sides = symmetric. AES is the standard symmetric block cipher for bulk encryption. RSA is asymmetric. SHA-256 is a hash. DH is key exchange." },
+  { id: 29, domain: "Cryptography", text: "Two organizations need to establish a shared symmetric key over the open internet without exchanging any pre-shared secret in advance.", prompt: "Which algorithm should be used to establish the shared key?",
+    options: { A: "AES", B: "SHA-256", C: "Diffie-Hellman", D: "HMAC" }, correct: "C",
+    explain: "Diffie-Hellman = key agreement over a public channel with no pre-shared secret. AES is symmetric encryption (needs a key to start). SHA is a hash. HMAC is a MAC." },
+  { id: 30, domain: "Cryptography", text: "A company needs an asymmetric algorithm whose security is based on the difficulty of factoring large prime numbers, to be used for digital signatures and key transport within a PKI.", prompt: "Which algorithm meets this requirement?",
+    options: { A: "Diffie-Hellman", B: "RSA", C: "AES", D: "SHA-3" }, correct: "B",
+    explain: "RSA's security rests on integer factorization. DH relies on discrete log. AES is symmetric. SHA-3 is a hash." },
+  { id: 31, domain: "Cryptography", text: "An IoT device manufacturer needs an asymmetric algorithm with strong security but small key sizes to fit within the memory and bandwidth constraints of small embedded devices.", prompt: "Which algorithm family is BEST?",
+    options: { A: "RSA-4096", B: "Elliptic curve cryptography (ECC)", C: "AES-256", D: "SHA-256" }, correct: "B",
+    explain: "ECC = asymmetric + small keys (ECC-256 ≈ RSA-3072). Ideal for IoT. RSA-4096 is asymmetric but with massive keys. AES is symmetric. SHA is a hash." },
+  { id: 32, domain: "Cryptography", text: "A web team migrating to TLS 1.3 needs a cipher mode that provides both confidentiality and integrity in a single authenticated encryption with associated data (AEAD) operation.", prompt: "Which mode meets this requirement?",
+    options: { A: "AES-ECB", B: "AES-CBC", C: "AES-GCM", D: "AES-CTR" }, correct: "C",
+    explain: "AES-GCM = AEAD = confidentiality + integrity in one operation. CBC and CTR are confidentiality only (need separate MAC). ECB is broken — never use." },
+  { id: 33, domain: "Cryptography", text: "A company needs a tamper-resistant physical device that securely stores and processes cryptographic keys, performs encryption and signing operations, and meets FIPS 140-2 standards for sensitive financial transactions.", prompt: "Which solution meets this requirement?",
+    options: { A: "Trusted platform module (TPM)", B: "Hardware security module (HSM)", C: "Self-encrypting drive (SED)", D: "Smart card" }, correct: "B",
+    explain: "HSM = enterprise-grade tamper-resistant crypto appliance, FIPS 140-2/3 certified, used for high-value key operations. TPM is a chip on a single host. SED encrypts a single drive. Smart card is a personal credential." },
+  { id: 34, domain: "Cryptography", text: "A company is deploying laptops with built-in hardware that securely stores cryptographic keys, supports remote attestation, and enables disk encryption (such as BitLocker) tied to the device's hardware identity.", prompt: "Which technology meets these requirements?",
+    options: { A: "Hardware security module (HSM)", B: "Trusted platform module (TPM)", C: "Smart card", D: "Self-encrypting drive (SED)" }, correct: "B",
+    explain: "TPM = chip on the motherboard that handles key storage, attestation, and disk encryption (BitLocker). HSM is a separate appliance. Smart card is a portable token. SED handles drive-level encryption only." },
+  { id: 35, domain: "Cryptography", text: "A company is concerned that laptops containing sensitive data could be stolen. The security team wants storage devices that automatically encrypt all data written to them, with encryption handled in the drive's hardware rather than the operating system.", prompt: "Which solution meets this requirement?",
+    options: { A: "Trusted platform module (TPM)", B: "Self-encrypting drives (SEDs)", C: "Hardware security module (HSM)", D: "Software full-disk encryption only" }, correct: "B",
+    explain: "SED = drive-level hardware encryption, transparent to the OS. TPM stores keys but doesn't encrypt drive data itself. HSM is for crypto operations, not storage. Software FDE puts the burden on the OS." },
+  { id: 36, domain: "Cryptography", text: "A software development team is releasing a new mobile application and needs to ensure that users and the operating system can verify the application has not been tampered with and originates from the legitimate publisher.", prompt: "Which solution meets this requirement?",
+    options: { A: "Code signing", B: "Code obfuscation", C: "Symmetric encryption of the application binary", D: "Regression testing" }, correct: "A",
+    explain: "Code signing = digital signature on the binary using the publisher's private key. The OS verifies with the public key. Obfuscation hides logic but doesn't prove origin/integrity. Symmetric encryption requires a shared key (impractical for public distribution)." },
+  { id: 37, domain: "Cryptography", text: "A company is implementing public key infrastructure (PKI) and needs a mechanism for clients to verify in real time whether a presented certificate has been revoked, without downloading the entire certificate revocation list.", prompt: "Which mechanism BEST meets this requirement?",
+    options: { A: "Certificate signing request (CSR)", B: "Online Certificate Status Protocol (OCSP)", C: "Self-signed certificate", D: "Public key pinning" }, correct: "B",
+    explain: "OCSP = real-time per-certificate revocation check, no need to download the full CRL. CSR is what you send to a CA to request a cert. Self-signed has no CA validation. Pinning is a TLS hardening technique, not revocation." },
+  { id: 38, domain: "Cryptography", text: "A bank deploys new Linux servers and wants to enforce mandatory access controls so that processes are confined to predefined security policies regardless of standard file permissions or user privileges.", prompt: "Which technology meets this requirement?",
+    options: { A: "sudo", B: "SELinux", C: "iptables", D: "Fail2ban" }, correct: "B",
+    explain: "SELinux = mandatory access control (MAC) on Linux, confines processes to policies that override standard DAC. sudo handles privilege escalation. iptables is a firewall. Fail2ban blocks IPs after failed logins." },
+  { id: 39, domain: "Cryptography", text: "A government agency is concerned that adversaries are collecting encrypted data today to decrypt later once quantum computers become viable ('harvest now, decrypt later').", prompt: "Which mitigation BEST addresses this concern long-term?",
+    options: { A: "Increasing AES key size from 128 to 256 bits", B: "Migrating to NIST-standardized post-quantum cryptographic algorithms (e.g., ML-KEM, ML-DSA)", C: "Implementing perfect forward secrecy only", D: "Switching from SHA-2 to SHA-3" }, correct: "B",
+    explain: "Post-quantum cryptography (PQC) algorithms like ML-KEM (Kyber) and ML-DSA (Dilithium) are designed to resist quantum attacks. AES-256 is fine for symmetric but the threat is to asymmetric. PFS helps but doesn't solve the long-term quantum threat. SHA-3 is still vulnerable to Grover's algorithm but PQC migration is the strategic answer." },
+  // GRC (40-54)
+  { id: 40, domain: "GRC", text: "A risk analyst is starting a new risk management engagement for a healthcare organization. According to the standard risk management methodology, what is the FIRST step in the process?", prompt: "Which step comes first?",
+    options: { A: "Risk assessment", B: "Risk identification", C: "Risk control", D: "Risk review" }, correct: "B",
+    explain: "Identify → Assess → Treat → Review. You can't assess what you haven't identified. The lifecycle is: identification, assessment (analyze likelihood/impact), treatment (control), monitoring/review." },
+  { id: 41, domain: "GRC", text: "After a risk analysis identifies a low-probability threat against a non-critical system, the resulting residual risk is determined to be below the organization's defined risk tolerance.", prompt: "Which risk treatment strategy is MOST appropriate?",
+    options: { A: "Mitigate", B: "Transfer", C: "Accept", D: "Avoid" }, correct: "C",
+    explain: "When residual risk is below tolerance, accepting it is the rational choice — further mitigation costs more than the risk warrants. Transfer (insurance) is for risks that exceed tolerance and can be offloaded. Avoid means don't do the activity. Mitigate adds controls." },
+  { id: 42, domain: "GRC", text: "A company purchases cyber insurance to offset the financial impact of a potential data breach.", prompt: "Which risk treatment strategy does this represent?",
+    options: { A: "Avoid", B: "Accept", C: "Transfer", D: "Mitigate" }, correct: "C",
+    explain: "Insurance = classic risk transfer. The risk still exists, but the financial impact is shifted to the insurer. Avoidance means not engaging in the activity. Accept means take the loss. Mitigate means reduce probability/impact via controls." },
+  { id: 43, domain: "GRC", text: "A financial services company is required to comply with the Sarbanes-Oxley Act (SOX) and needs to implement controls over its financial reporting systems and ensure executives can attest to the accuracy of the financial statements.", prompt: "Which control area is MOST DIRECTLY required by SOX?",
+    options: { A: "Wireless encryption strength", B: "Internal controls over financial reporting and audit trails", C: "Customer credit information access", D: "Patient health information privacy" }, correct: "B",
+    explain: "SOX Section 404 = internal controls over financial reporting (ICFR). Auditors test these controls; executives certify accuracy. Wireless = PCI-relevant. Credit info = FCRA. PHI = HIPAA." },
+  { id: 44, domain: "GRC", text: "A university must comply with the Family Educational Rights and Privacy Act (FERPA) for its student records system. The university must restrict who can view a student's educational records.", prompt: "Which control BEST meets this requirement?",
+    options: { A: "Wireless encryption", B: "Role-based access controls limiting access to authorized personnel", C: "Disaster recovery site", D: "Public posting of grade rosters" }, correct: "B",
+    explain: "FERPA = restrict access to student educational records to authorized parties. Access controls are the direct mapping. Encryption helps confidentiality but the FERPA-specific requirement is access restriction. Public posting violates FERPA." },
+  { id: 45, domain: "GRC", text: "A US-based health insurer needs to render electronic protected health information (ePHI) unusable, unreadable, or indecipherable to unauthorized individuals both at rest and in transit, to comply with the HIPAA Security Rule.", prompt: "Which technical safeguard BEST meets this requirement?",
+    options: { A: "Workforce training", B: "Encryption", C: "Risk assessment documentation", D: "Business associate agreements" }, correct: "B",
+    explain: "HIPAA's 'unusable, unreadable, or indecipherable' language is the safe harbor — encryption achieves it. Training is administrative. Risk assessment is required but doesn't render data unreadable. BAAs are contracts." },
+  { id: 46, domain: "GRC", text: "A European retailer must protect personal data of EU residents under GDPR Article 32 (security of processing).", prompt: "Which security control is MOST DIRECTLY required to protect personal data?",
+    options: { A: "Annual penetration testing", B: "Encryption of personal data", C: "Posting privacy notices in storefronts", D: "Multi-factor authentication only" }, correct: "B",
+    explain: "GDPR Article 32(1)(a) explicitly names encryption (and pseudonymization) as appropriate technical measures. Pen testing is good practice but not the article's direct requirement. Privacy notices are required but separate from security of processing." },
+  { id: 47, domain: "GRC", text: "A consumer credit reporting agency must comply with the Fair Credit Reporting Act (FCRA) and ensure that consumer credit reports are only viewable by authorized users with a permissible purpose.", prompt: "Which control BEST meets this requirement?",
+    options: { A: "Penetration testing", B: "Role-based access controls", C: "Secure coding training", D: "Network segmentation" }, correct: "B",
+    explain: "FCRA's core mandate = restrict access to credit reports to permissible purposes. Access controls map directly. Pen testing and secure coding are general controls. Segmentation helps but isn't the FCRA-specific answer." },
+  { id: 48, domain: "GRC", text: "A financial institution must comply with the Gramm-Leach-Bliley Act (GLBA) Safeguards Rule, which requires protection of nonpublic personal information (NPI) of customers.", prompt: "Which combination BEST satisfies the GLBA Safeguards Rule?",
+    options: { A: "Public disclosure of all financial records", B: "Administrative, technical, and physical safeguards over customer NPI", C: "Encrypted public Wi-Fi only", D: "Mandatory daily backups of marketing data" }, correct: "B",
+    explain: "GLBA Safeguards Rule explicitly requires administrative, technical, and physical safeguards over NPI. The other options are either irrelevant or violate the act." },
+  { id: 49, domain: "GRC", text: "A retail merchant accepts credit cards and must comply with PCI DSS. The merchant offers wireless guest Wi-Fi in stores.", prompt: "Which wireless encryption standard meets PCI DSS requirements?",
+    options: { A: "WEP", B: "WPA with TKIP", C: "WPA2-AES (or WPA3)", D: "Open network" }, correct: "C",
+    explain: "PCI DSS prohibits WEP and TKIP. WPA2-AES (or WPA3) is the minimum acceptable standard." },
+  { id: 50, domain: "GRC", text: "A US federal civilian agency must comply with security controls mandated by law for federal information systems.", prompt: "Which framework MUST it follow?",
+    options: { A: "PCI DSS", B: "HIPAA", C: "FISMA / NIST SP 800-53", D: "SOC 2 Type II" }, correct: "C",
+    explain: "FISMA (Federal Information Security Management/Modernization Act) is the legal mandate; NIST SP 800-53 provides the control catalog. PCI is for payment cards. HIPAA is healthcare. SOC 2 is a voluntary attestation framework." },
+  { id: 51, domain: "GRC", text: "A company is signing a contract with a new third-party vendor that will have access to sensitive customer data. Management is concerned about the security risks introduced by the vendor relationship.", prompt: "Which risk management strategy BEST addresses this concern?",
+    options: { A: "Vendor lock-in", B: "Vendor viability assessment and third-party security due diligence", C: "Reciprocal agreement", D: "Random vendor selection" }, correct: "B",
+    explain: "Third-party risk management = pre-contract due diligence (security questionnaires, SOC 2 reports, financial viability). Vendor lock-in is the OPPOSITE of risk management. Reciprocal agreements are a DR concept. Random selection ignores risk." },
+  { id: 52, domain: "GRC", text: "A federal agency is launching a new citizen-facing portal that will collect personally identifiable information (PII). Before going live, the agency must formally identify and evaluate how the system will affect individual privacy.", prompt: "Which assessment is required?",
+    options: { A: "Business impact analysis (BIA)", B: "Privacy impact assessment (PIA)", C: "Vulnerability assessment", D: "Penetration test" }, correct: "B",
+    explain: "PIA = required for federal systems handling PII (E-Government Act of 2002). BIA = business operations impact. VA/pen test = technical weaknesses, not privacy." },
+  { id: 53, domain: "GRC", text: "A planner needs to determine the maximum tolerable downtime for a payroll system and identify upstream and downstream dependencies before designing recovery strategies.", prompt: "Which process produces this information?",
+    options: { A: "Disaster recovery plan (DRP)", B: "Business impact analysis (BIA)", C: "Business continuity plan (BCP)", D: "Incident response plan (IRP)" }, correct: "B",
+    explain: "BIA produces MTD, RTO, RPO, and dependency mapping. The DRP and BCP are then BUILT FROM the BIA output. IRP handles cyber incidents." },
+  { id: 54, domain: "GRC", text: "A regional hospital with limited budget needs a disaster recovery site that can be activated within hours but cannot afford continuous real-time data replication.", prompt: "Which DR site type BEST balances cost and recovery time?",
+    options: { A: "Hot site", B: "Warm site", C: "Cold site", D: "Reciprocal agreement" }, correct: "B",
+    explain: "Warm site = hardware/software pre-staged, data not real-time replicated, recovery in hours. Hot is expensive (real-time sync). Cold is too slow (days). Reciprocal agreements are informal and risky." },
+  // RESEARCH/DEV/INTEGRATION (55-60)
+  { id: 55, domain: "Secure Dev", text: "A development team is implementing delegated authorization so users can grant a third-party application limited access to their cloud storage account without sharing their credentials.", prompt: "Which protocol is MOST appropriate?",
+    options: { A: "SAML 2.0", B: "Kerberos", C: "OAuth 2.0", D: "RADIUS" }, correct: "C",
+    explain: "OAuth 2.0 = delegated authorization (third-party access without credential sharing). SAML = SSO via XML assertions. Kerberos = ticket-based intranet auth. RADIUS = network access auth." },
+  { id: 56, domain: "Secure Dev", text: "An enterprise wants users to sign in once and access multiple federated applications (both on-premises and cloud-based) without re-entering credentials. The identity provider should make assertions about the user to each service provider using XML-based tokens.", prompt: "Which protocol BEST meets this requirement?",
+    options: { A: "OAuth 2.0", B: "Security Assertion Markup Language (SAML)", C: "RADIUS", D: "Kerberos" }, correct: "B",
+    explain: "SAML = XML-based federated SSO assertions between IdP and SP. OAuth is authorization (not auth/SSO). RADIUS is for network access. Kerberos is for intranet SSO but uses tickets, not XML." },
+  { id: 57, domain: "Secure Dev", text: "During which phase of the software development lifecycle is threat modeling MOST effectively performed to identify design-level security weaknesses before code is written?", prompt: "Which SDLC phase?",
+    options: { A: "Requirements", B: "Design", C: "Testing", D: "Deployment" }, correct: "B",
+    explain: "Threat modeling = design-phase activity. You model the system architecture, identify threats (STRIDE), and design mitigations BEFORE coding. Requirements gathers needs. Testing validates after coding. Deployment is too late." },
+  { id: 58, domain: "Secure Dev", text: "A development team wants to scan their source code repository automatically for security vulnerabilities (such as insecure functions, hardcoded secrets, and known weak patterns) without executing the code.", prompt: "Which type of testing meets this requirement?",
+    options: { A: "Dynamic application security testing (DAST)", B: "Static application security testing (SAST)", C: "Penetration testing", D: "Fuzz testing" }, correct: "B",
+    explain: "SAST = static = analyze source code without executing it. DAST = dynamic = test running app. Pen testing is broader manual assessment. Fuzz testing throws malformed inputs at running apps." },
+  { id: 59, domain: "Secure Dev", text: "A security team wants to ensure that builds of a new mobile application will be trusted by users and verifiable as coming from the legitimate publisher without modification.", prompt: "Which solution fulfills this requirement?",
+    options: { A: "Regression testing", B: "Code scanning", C: "Code signing", D: "Continuous delivery" }, correct: "C",
+    explain: "Code signing = digital signature proving publisher identity and integrity. Regression testing checks for broken functionality. Code scanning finds vulnerabilities. CD is a delivery pipeline." },
+  { id: 60, domain: "Secure Dev", text: "An organization is developing a new telemedicine platform that will handle protected health information. The cybersecurity analyst is asked to lead a structured risk management process.", prompt: "What is the correct sequence of steps?",
+    options: { A: "Identify business assets, identify known vulnerabilities, identify threats, identify business impact, identify risk response", B: "Identify known vulnerabilities, identify business assets, identify threats, identify business impact, identify risk response", C: "Identify business impact, identify known vulnerabilities, identify business assets, identify threats, identify risk response", D: "Identify known vulnerabilities, identify business impact, identify business assets, identify threats, identify risk response" }, correct: "A",
+    explain: "Standard risk management sequence: assets first (what are you protecting?), then vulnerabilities (weaknesses in those assets), then threats (what could exploit them?), then impact (what's the consequence?), then response (treat/accept/transfer/avoid). You can't assess impact without first knowing what's at stake." }
+];
+
+let currentIdx = 0;
+let answers = {};
+let flagged = new Set();
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+
+const questionCard = document.getElementById('questionCard');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const submitBtn = document.getElementById('submitBtn');
+const flagBtn = document.getElementById('flagBtn');
+const palette = document.getElementById('palette');
+const qCurrent = document.getElementById('qCurrent');
+const qTotal = document.getElementById('qTotal');
+const answeredCount = document.getElementById('answeredCount');
+const progressFill = document.getElementById('progressFill');
+const timerEl = document.getElementById('timer');
+const timerToggle = document.getElementById('timerToggle');
+qTotal.textContent = questions.length;
+
+function fmtTime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return (h > 0 ? String(h).padStart(2,'0') + ':' : '') + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+
+timerToggle.addEventListener('click', () => {
+  if (!timerRunning) {
+    timerRunning = true;
+    timerToggle.textContent = '⏸ Pause Timer';
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      timerEl.textContent = fmtTime(timerSeconds);
+      if (timerSeconds > 9000) timerEl.classList.add('warning'); // 2.5h+
+    }, 1000);
+    timerEl.textContent = fmtTime(timerSeconds);
+  } else {
+    timerRunning = false;
+    timerToggle.textContent = '▶ Resume Timer';
+    clearInterval(timerInterval);
+  }
+});
+
+function renderQuestion() {
+  const q = questions[currentIdx];
+  const selected = answers[q.id];
+  questionCard.innerHTML = `
+    <div class="q-meta">
+      <div class="q-number mono">QUESTION ${String(q.id).padStart(2,'0')} / ${String(questions.length).padStart(2,'0')}</div>
+      <div class="q-domain">${q.domain}</div>
+    </div>
+    <p class="q-text">${q.text}<br><br><span class="q-prompt">${q.prompt}</span></p>
+    <ul class="choices">
+      ${['A','B','C','D'].map(letter => `
+        <li class="choice">
+          <label>
+            <input type="radio" name="q${q.id}" value="${letter}" ${selected === letter ? 'checked' : ''}>
+            <span class="choice-content"><span class="choice-letter">${letter}.</span> ${q.options[letter]}</span>
+          </label>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+  questionCard.querySelectorAll('input[type="radio"]').forEach(input => {
+    input.addEventListener('change', (e) => {
+      answers[q.id] = e.target.value;
+      updateProgress();
+      renderPalette();
+    });
+  });
+  qCurrent.textContent = currentIdx + 1;
+  prevBtn.disabled = currentIdx === 0;
+  nextBtn.disabled = currentIdx === questions.length - 1;
+  // Flag button state
+  if (flagged.has(q.id)) { flagBtn.classList.add('flagged'); flagBtn.textContent = '⚑ Flagged'; }
+  else { flagBtn.classList.remove('flagged'); flagBtn.textContent = '⚑ Flag for Review'; }
+  updateProgress();
+  renderPalette();
+}
+
+function updateProgress() {
+  const answered = Object.keys(answers).length;
+  answeredCount.textContent = answered;
+  const pct = ((currentIdx + 1) / questions.length) * 100;
+  progressFill.style.width = pct + '%';
+}
+
+function renderPalette() {
+  palette.innerHTML = questions.map((q, i) => {
+    const isAnswered = answers[q.id] !== undefined;
+    const isCurrent = i === currentIdx;
+    const isFlagged = flagged.has(q.id);
+    return `<div class="palette-cell mono ${isAnswered ? 'answered' : ''} ${isCurrent ? 'current' : ''} ${isFlagged ? 'flagged' : ''}" data-idx="${i}">${i+1}</div>`;
+  }).join('');
+  palette.querySelectorAll('.palette-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      currentIdx = parseInt(cell.dataset.idx);
+      renderQuestion();
+    });
+  });
+}
+
+prevBtn.addEventListener('click', () => { if (currentIdx > 0) { currentIdx--; renderQuestion(); } });
+nextBtn.addEventListener('click', () => { if (currentIdx < questions.length - 1) { currentIdx++; renderQuestion(); } });
+
+flagBtn.addEventListener('click', () => {
+  const q = questions[currentIdx];
+  if (flagged.has(q.id)) flagged.delete(q.id);
+  else flagged.add(q.id);
+  renderQuestion();
+});
+
+const modal = document.getElementById('modal');
+const modalText = document.getElementById('modalText');
+document.getElementById('modalCancel').addEventListener('click', () => modal.classList.remove('active'));
+document.getElementById('modalConfirm').addEventListener('click', () => { modal.classList.remove('active'); showResults(); });
+
+submitBtn.addEventListener('click', () => {
+  const unanswered = questions.length - Object.keys(answers).length;
+  if (unanswered > 0) {
+    modalText.textContent = `You have ${unanswered} unanswered question${unanswered === 1 ? '' : 's'}. Submitting now will count them as incorrect.`;
+    modal.classList.add('active');
+  } else {
+    modalText.textContent = `Submit your exam now? All ${questions.length} questions are answered.`;
+    modal.classList.add('active');
+  }
+});
+
+function showResults() {
+  if (timerRunning) { clearInterval(timerInterval); timerRunning = false; }
+  document.getElementById('exam-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  let correct = 0;
+  const domainStats = {};
+  questions.forEach(q => {
+    const userAnswer = answers[q.id];
+    const isRight = userAnswer === q.correct;
+    if (isRight) correct++;
+    if (!domainStats[q.domain]) domainStats[q.domain] = { right: 0, total: 0 };
+    domainStats[q.domain].total++;
+    if (isRight) domainStats[q.domain].right++;
+  });
+  const pct = Math.round((correct / questions.length) * 100);
+  document.getElementById('scoreCorrect').textContent = correct;
+  document.getElementById('scoreTotal').textContent = questions.length;
+  document.getElementById('scorePercent').textContent = pct + '%';
+  let label = '';
+  if (pct >= 90) label = 'Exam ready — schedule it';
+  else if (pct >= 80) label = 'Very strong — light review';
+  else if (pct >= 73) label = 'Likely passing — target weak domains';
+  else if (pct >= 65) label = 'Borderline — more drilling needed';
+  else label = 'Heavy review — re-study weak domains';
+  document.getElementById('scoreLabel').textContent = label + (timerSeconds > 0 ? ' · ' + fmtTime(timerSeconds) : '');
+  const domSummary = document.getElementById('domainSummary');
+  domSummary.innerHTML = Object.entries(domainStats).map(([dom, stats]) => {
+    const dpct = Math.round((stats.right / stats.total) * 100);
+    const cls = dpct >= 80 ? 'strong' : (dpct < 60 ? 'weak' : '');
+    return `<div class="label">${dom}</div><div class="value ${cls}">${stats.right}/${stats.total} (${dpct}%)</div>`;
+  }).join('');
+  renderBreakdown('all');
+}
+
+function renderBreakdown(filter) {
+  const breakdown = document.getElementById('breakdown');
+  breakdown.innerHTML = questions.map(q => {
+    const userAnswer = answers[q.id];
+    const isRight = userAnswer === q.correct;
+    if (filter === 'correct' && !isRight) return '';
+    if (filter === 'incorrect' && isRight) return '';
+    const userDisplay = userAnswer ? `${userAnswer}. ${q.options[userAnswer]}` : '(no answer)';
+    return `
+      <div class="result-card ${isRight ? 'correct' : 'incorrect'}">
+        <div class="result-meta">
+          <div class="result-q-num mono">QUESTION ${String(q.id).padStart(2,'0')} · ${q.domain}</div>
+          <div class="result-badge ${isRight ? 'correct' : 'incorrect'}">${isRight ? '✓ Correct' : '✗ Incorrect'}</div>
+        </div>
+        <p class="result-q-text">${q.text}<br><em>${q.prompt}</em></p>
+        <div class="result-answers">
+          <div><span class="label-tag">Your answer:</span><span class="your-pick ${isRight ? 'right' : 'wrong'}">${userDisplay}</span></div>
+          ${!isRight ? `<div><span class="label-tag">Correct:</span><span class="correct-pick">${q.correct}. ${q.options[q.correct]}</span></div>` : ''}
+        </div>
+        <div class="result-explain">${q.explain}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('.filter-bar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderBreakdown(btn.dataset.filter);
+  });
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  let correct = 0;
+  const domainStats = {};
+  questions.forEach(q => {
+    if (answers[q.id] === q.correct) correct++;
+    if (!domainStats[q.domain]) domainStats[q.domain] = { right: 0, total: 0 };
+    domainStats[q.domain].total++;
+    if (answers[q.id] === q.correct) domainStats[q.domain].right++;
+  });
+  const pct = Math.round((correct / questions.length) * 100);
+  let txt = `D488 MOCK OA RESULTS — ${correct}/${questions.length} (${pct}%)\n`;
+  if (timerSeconds > 0) txt += `Time: ${fmtTime(timerSeconds)}\n`;
+  txt += `${'='.repeat(50)}\n\nDomain breakdown:\n`;
+  Object.entries(domainStats).forEach(([dom, stats]) => {
+    const dpct = Math.round((stats.right / stats.total) * 100);
+    txt += `  ${dom}: ${stats.right}/${stats.total} (${dpct}%)\n`;
+  });
+  txt += `\nMissed questions:\n`;
+  questions.forEach(q => {
+    if (answers[q.id] !== q.correct) {
+      txt += `✗ Q${String(q.id).padStart(2,'0')} [${q.domain}] You: ${answers[q.id] || '—'} | Correct: ${q.correct}\n`;
+    }
+  });
+  navigator.clipboard.writeText(txt).then(() => {
+    const fb = document.getElementById('copyFeedback');
+    fb.classList.add('show');
+    setTimeout(() => fb.classList.remove('show'), 2000);
+  }).catch(() => { prompt('Copy this text:', txt); });
+});
+
+document.getElementById('retakeBtn').addEventListener('click', () => {
+  answers = {};
+  flagged.clear();
+  currentIdx = 0;
+  timerSeconds = 0;
+  timerEl.textContent = '';
+  timerEl.classList.remove('warning');
+  timerToggle.textContent = '▶ Start Timer';
+  timerRunning = false;
+  if (timerInterval) clearInterval(timerInterval);
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('exam-screen').style.display = 'block';
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+renderQuestion();
+</script>
+</body>
+</html>
